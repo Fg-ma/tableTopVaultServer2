@@ -14,8 +14,6 @@ using tcp = asio::ip::tcp;
 using ssl_stream = asio::ssl::stream<tcp::socket>;
 using json = nlohmann::json;
 
-Config config;
-
 struct Config {
   std::string server_ip;
   int server_port;
@@ -31,6 +29,8 @@ struct Config {
   int request_num_uses;
 };
 
+Config config;
+
 bool checkNodeExists(const YAML::Node& node, const std::string& key) {
   if (!node[key]) {
     std::cerr << "Missing required config key: " << key << "\n";
@@ -39,13 +39,13 @@ bool checkNodeExists(const YAML::Node& node, const std::string& key) {
   return true;
 }
 
-bool load_config(const std::string& path, Config& config) {
+bool load_config(const std::string& path) {
   try {
     YAML::Node root = YAML::LoadFile(path);
 
     // Check top-level sections
     if (!checkNodeExists(root, "server") || !checkNodeExists(root, "tls") ||
-        !checkNodeExists(root, "vault") || !checkNodeExists(root, "request"))
+        !checkNodeExists(root, "request"))
       return false;
 
     // Server
@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  if (!load_config(argv[1], config)) {
+  if (!load_config(argv[1])) {
     std::cerr << "Failed to load config\n";
     return 1;
   }
@@ -130,9 +130,9 @@ int main(int argc, char* argv[]) {
   asio::ssl::context ssl_ctx(asio::ssl::context::tlsv12_client);
 
   // Set CA cert to verify server
-  ssl_ctx.use_certificate_chain_file(config.client_cert_path);
-  ssl_ctx.use_private_key_file(config.client_key_path, asio::ssl::context::pem);
-  ssl_ctx.load_verify_file(config.ca_cert_path);
+  ssl_ctx.use_certificate_chain_file(config.cert_file);
+  ssl_ctx.use_private_key_file(config.key_file, asio::ssl::context::pem);
+  ssl_ctx.load_verify_file(config.ca_file);
   ssl_ctx.set_verify_mode(asio::ssl::verify_peer);
 
   ssl_stream sock(ctx, ssl_ctx);
@@ -145,8 +145,12 @@ int main(int argc, char* argv[]) {
 
   // Send request
   json req = {
-      {"cmd", "request"},          {"id", config.vm_id},          {"ip", config.vm_ip},
-      {"purpose", config.purpose}, {"policies", config.policies}, {"num_uses", config.num_uses},
+      {"cmd", "request"},
+      {"id", config.request_id},
+      {"ip", config.request_ip},
+      {"purpose", config.request_purpose},
+      {"policies", config.request_policies},
+      {"num_uses", config.request_num_uses},
   };
   send_json(sock, req);
 

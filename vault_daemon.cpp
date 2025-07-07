@@ -216,7 +216,7 @@ std::string generateOneTimeVaultToken(const std::string& request_id, int num_use
     headers = curl_slist_append(headers, "Content-Type: application/json");
     headers = curl_slist_append(headers, ("X-Vault-Token: " + vaultMasterToken).c_str());
 
-    curl_easy_setopt(curl, CURLOPT_URL, config.vault_token_url);
+    curl_easy_setopt(curl, CURLOPT_URL, config.vault_token_url.c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payloadStr.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString);
@@ -224,7 +224,7 @@ std::string generateOneTimeVaultToken(const std::string& request_id, int num_use
 
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
-    curl_easy_setopt(curl, CURLOPT_CAINFO, config.vault_ca);
+    curl_easy_setopt(curl, CURLOPT_CAINFO, config.vault_ca.c_str());
 
     CURLcode res = curl_easy_perform(curl);
     if (res != CURLE_OK) {
@@ -256,14 +256,14 @@ bool verifyMasterToken(const std::string& token) {
   headers = curl_slist_append(headers, "Content-Type: application/json");
   headers = curl_slist_append(headers, ("X-Vault-Token: " + token).c_str());
 
-  curl_easy_setopt(curl, CURLOPT_URL, config.vault_lookup_url);
+  curl_easy_setopt(curl, CURLOPT_URL, config.vault_lookup_url.c_str());
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
-  curl_easy_setopt(curl, CURLOPT_CAINFO, config.vault_ca);
+  curl_easy_setopt(curl, CURLOPT_CAINFO, config.vault_ca.c_str());
 
   CURLcode res = curl_easy_perform(curl);
   long http_code = 0;

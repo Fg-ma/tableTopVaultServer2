@@ -2,3 +2,4 @@
 /lib
 /build/*
 /certs
+/nginx-1.28.0

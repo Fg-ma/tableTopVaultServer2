@@ -11,17 +11,37 @@ include_directories(${Boost_INCLUDE_DIRS})
 find_package(PkgConfig REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
-find_package(nlohmann_json_schema_validator REQUIRED)
-find_package(yaml-cpp REQUIRED)
 
-# fallback to FetchContent for nlohmann_json if not found
 include(FetchContent)
+
 FetchContent_Declare(
-  json
-  URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
-  DOWNLOAD_EXTRACT_TIMESTAMP true
+  yaml_cpp
+  GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+  GIT_TAG master
 )
-FetchContent_MakeAvailable(json)
+FetchContent_MakeAvailable(yaml_cpp)
+
+
+find_package(nlohmann_json QUIET)
+if(NOT nlohmann_json_FOUND)
+  include(FetchContent)
+  FetchContent_Declare(
+    json
+    URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+    DOWNLOAD_EXTRACT_TIMESTAMP true
+  )
+  FetchContent_MakeAvailable(json)
+endif()
+
+
+include(FetchContent)
+
+FetchContent_Declare(
+  json_validator
+  GIT_REPOSITORY https://github.com/pboettch/json-schema-validator.git
+  GIT_TAG main
+)
+FetchContent_MakeAvailable(json_validator)
 
 pkg_check_modules(SODIUM REQUIRED libsodium)
 
@@ -34,7 +54,7 @@ target_link_libraries(vault_daemon
       CURL::libcurl
       ${SODIUM_LIBRARIES}
       nlohmann_json::nlohmann_json
-      nlohmann_json_schema_validator::nlohmann_json_schema_validator
+      nlohmann_json_schema_validator
       yaml-cpp
 )
 target_include_directories(vault_daemon
