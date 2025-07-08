@@ -83,6 +83,7 @@ json rpc(const json& msg) {
     if (clientCert.isNull()) {
       throw std::runtime_error("Failed to load client certificate.");
     }
+    sslConfig.setLocalCertificate(clientCert);
 
     // Load client private key
     QFile keyFile(config.key_file);

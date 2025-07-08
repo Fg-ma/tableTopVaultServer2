@@ -426,6 +426,52 @@ int main(int argc, char* argv[]) {
   sslCtx.use_private_key_file(config.vault_key, asio::ssl::context::pem);
   sslCtx.use_tmp_dh_file(config.vault_dhparam);
   sslCtx.load_verify_file(config.vault_ca);
+  sslCtx.set_verify_mode(asio::ssl::verify_fail_if_no_peer_cert | asio::ssl::verify_peer);
+  std::cout << "Worked" << "\n";
+  sslCtx.set_verify_callback([](bool preverified, asio::ssl::verify_context& ctx) -> bool {
+    std::cout << "=== Verify Callback ===\n";
+    std::cout << "preverified: " << preverified << "\n";
+
+    X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
+    if (!cert) {
+      std::cerr << "[TLS] No current cert\n";
+      return false;
+    }
+
+    // Dump the current cert subject and issuer
+    char subject[256], issuer[256];
+    X509_NAME_oneline(X509_get_subject_name(cert), subject, sizeof(subject));
+    X509_NAME_oneline(X509_get_issuer_name(cert), issuer, sizeof(issuer));
+
+    std::cout << "[TLS] Cert Subject: " << subject << "\n";
+    std::cout << "[TLS] Cert Issuer:  " << issuer << "\n";
+
+    // Print serial number
+    ASN1_INTEGER* serial = X509_get_serialNumber(cert);
+    BIGNUM* bn = ASN1_INTEGER_to_BN(serial, NULL);
+    char* hex = BN_bn2hex(bn);
+    std::cout << "[TLS] Serial:       " << hex << "\n";
+    BN_free(bn);
+    OPENSSL_free(hex);
+
+    // Check if it's a CA cert
+    if (X509_check_ca(cert)) {
+      std::cerr << "[TLS] Rejecting cert because it's a CA cert.\n";
+      return false;
+    }
+
+    // Accept only specific CN
+    std::string subjectStr(subject);
+    std::string allowed_cn = "/CN=table-top-vault-server-nginx-proxy";
+
+    if (subjectStr != allowed_cn) {
+      std::cerr << "[TLS] CN mismatch. Expected: " << allowed_cn << "\n";
+      return false;
+    }
+
+    std::cout << "[TLS] Certificate accepted\n";
+    return true;
+  });
 
   asio::io_context ioCtx;
   using asio::ip::tcp;
